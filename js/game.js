@@ -1,303 +1,314 @@
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
-// FISHINGWORLD - OYUN MOTORU
+/* =========================
+   FISHINGWORLD - OYUN MOTORU
+========================= */
 
-const $ = id => document.getElementById(id);
-
-let gold = 1000;
-let soundOn = true;
-let started = false;
-let inBoat = true;
-let cameraMode = 3;
-let speed = 0;
-let steering = 0;
-let walkX = 0;
-let walkZ = 0;
-let boatPosition = new THREE.Vector3(0, 0, 5);
-let boatRotation = 0;
-let characterPosition = new THREE.Vector3(0, 0, 5);
-let chestOpened = false;
-
-let engineLevel = 1;
-let rodLevel = 1;
-let armorLevel = 1;
-
-let boatLevel = 0;
-let ownedBoats = [true, false, false, false];
-
-const stories = [
-    {
-        icon: "🌅",
-        title: "Yeni Bir Hayat",
-        text: "Genç balıkçı, büyük bir deniz macerasına başlamak istiyordu."
-    },
-    {
-        icon: "👨‍🦱",
-        title: "Balıkçı",
-        text: "Küçük yaşlardan beri denizi ve balıkları çok seviyordu."
-    },
-    {
-        icon: "🎣",
-        title: "İlk Olta",
-        text: "Yıllar boyunca balık tutmayı öğrendi ve kendi oltasını hazırladı."
-    },
-    {
-        icon: "🚤",
-        title: "Yeni Tekne",
-        text: "Sonunda kendi teknesini aldı ve uzak adaları keşfetmeye karar verdi."
-    },
-    {
-        icon: "🏝️",
-        title: "Büyük Macera",
-        text: "Şimdi sıra sende! Teknenin yanına git ve maceraya başla."
-    }
-];
-
-let storyIndex = 0;
-
-// THREE.JS DÜNYASI
+const canvas = document.getElementById("scene");
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x75c9ed);
-scene.fog = new THREE.Fog(0x75c9ed, 70, 190);
+scene.background = new THREE.Color(0x79c9ed);
+scene.fog = new THREE.Fog(0x79c9ed, 70, 230);
 
 const camera = new THREE.PerspectiveCamera(
     65,
-    innerWidth / innerHeight,
+    window.innerWidth / window.innerHeight,
     0.1,
-    500
+    1000
 );
 
 const renderer = new THREE.WebGLRenderer({
-    canvas: $("scene"),
+    canvas,
     antialias: true
 });
 
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-scene.add(new THREE.HemisphereLight(0xbceaff, 0x31543a, 2));
+/* IŞIKLAR */
 
-const sunlight = new THREE.DirectionalLight(0xffffff, 2.2);
-sunlight.position.set(30, 50, 20);
-sunlight.castShadow = true;
-scene.add(sunlight);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x47718a, 2));
 
-// DENİZ
+const sun = new THREE.DirectionalLight(0xffffff, 2);
+sun.position.set(30, 60, 20);
+sun.castShadow = true;
+scene.add(sun);
 
-const waterGeometry = new THREE.PlaneGeometry(500, 500, 50, 50);
-const waterMaterial = new THREE.MeshStandardMaterial({
-    color: 0x087db3,
+/* DENİZ */
+
+const seaGeometry = new THREE.PlaneGeometry(1000, 1000, 100, 100);
+const seaMaterial = new THREE.MeshStandardMaterial({
+    color: 0x087eae,
     roughness: 0.35,
     metalness: 0.15
 });
 
-const water = new THREE.Mesh(waterGeometry, waterMaterial);
-water.rotation.x = -Math.PI / 2;
-water.position.y = -0.3;
-water.receiveShadow = true;
-scene.add(water);
+const sea = new THREE.Mesh(seaGeometry, seaMaterial);
+sea.rotation.x = -Math.PI / 2;
+sea.position.y = -0.5;
+sea.receiveShadow = true;
+scene.add(sea);
 
-// ADALAR
-
-function createIsland(x, z, size = 12) {
-    const island = new THREE.Group();
-
-    const sand = new THREE.Mesh(
-        new THREE.CylinderGeometry(size, size + 2, 2, 32),
-        new THREE.MeshStandardMaterial({color: 0xd5c18b})
-    );
-    sand.position.y = 0.3;
-    island.add(sand);
-
-    const grass = new THREE.Mesh(
-        new THREE.CylinderGeometry(size * 0.83, size, 3, 32),
-        new THREE.MeshStandardMaterial({color: 0x348a42})
-    );
-    grass.position.y = 1.4;
-    island.add(grass);
-
-    const mountain = new THREE.Mesh(
-        new THREE.ConeGeometry(size * 0.55, size * 1.3, 6),
-        new THREE.MeshStandardMaterial({color: 0x466c46})
-    );
-    mountain.position.y = size * 0.7;
-    island.add(mountain);
-
-    island.position.set(x, 0, z);
-    scene.add(island);
-
-    return island;
-}
-
-createIsland(0, -45, 16);
-createIsland(45, -90, 20);
-createIsland(-55, -115, 22);
-
-// BULUTLAR
+/* GÖKYÜZÜ VE BULUTLAR */
 
 const clouds = [];
 
 function createCloud(x, y, z) {
-    const group = new THREE.Group();
+    const cloud = new THREE.Group();
 
     for (let i = 0; i < 5; i++) {
-        const puff = new THREE.Mesh(
-            new THREE.SphereGeometry(2.5, 12, 12),
-            new THREE.MeshStandardMaterial({
-                color: 0xffffff,
-                roughness: 1
-            })
+        const part = new THREE.Mesh(
+            new THREE.SphereGeometry(1.5 + Math.random(), 12, 12),
+            new THREE.MeshStandardMaterial({ color: 0xffffff })
         );
 
-        puff.position.set(i * 2.5, Math.random() * 1.2, 0);
-        group.add(puff);
+        part.position.set(
+            (Math.random() - 0.5) * 4,
+            Math.random() * 1.2,
+            (Math.random() - 0.5) * 2
+        );
+
+        cloud.add(part);
     }
 
-    group.position.set(x, y, z);
-    scene.add(group);
-    clouds.push(group);
+    cloud.position.set(x, y, z);
+    scene.add(cloud);
+    clouds.push(cloud);
 }
 
-for (let i = 0; i < 12; i++) {
+for (let i = 0; i < 18; i++) {
     createCloud(
-        Math.random() * 100 - 50,
-        18 + Math.random() * 10,
-        -Math.random() * 130
+        (Math.random() - 0.5) * 180,
+        20 + Math.random() * 20,
+        (Math.random() - 0.5) * 180
     );
 }
 
-// TEKNE
+/* ADALAR */
 
-const boat = new THREE.Group();
+const islands = [];
 
-function boatPart(geometry, color, x, y, z) {
-    const mesh = new THREE.Mesh(
-        geometry,
-        new THREE.MeshStandardMaterial({color, roughness: 0.65})
+function createIsland(x, z, size) {
+    const island = new THREE.Group();
+
+    const ground = new THREE.Mesh(
+        new THREE.CylinderGeometry(size, size * 1.3, 4, 32),
+        new THREE.MeshStandardMaterial({ color: 0xbda56b })
     );
-    mesh.position.set(x, y, z);
-    mesh.castShadow = true;
-    boat.add(mesh);
-    return mesh;
+
+    ground.position.y = 0;
+    ground.receiveShadow = true;
+    island.add(ground);
+
+    const grass = new THREE.Mesh(
+        new THREE.CylinderGeometry(size * 0.9, size, 1.2, 32),
+        new THREE.MeshStandardMaterial({ color: 0x278b40 })
+    );
+
+    grass.position.y = 2;
+    island.add(grass);
+
+    const mountain = new THREE.Mesh(
+        new THREE.ConeGeometry(size * 0.55, size * 1.7, 6),
+        new THREE.MeshStandardMaterial({ color: 0x536b55 })
+    );
+
+    mountain.position.y = size * 0.9 + 2;
+    mountain.castShadow = true;
+    island.add(mountain);
+
+    island.position.set(x, -2, z);
+    scene.add(island);
+    islands.push(island);
 }
 
-boatPart(
-    new THREE.BoxGeometry(3.8, 0.8, 7),
-    0x202e3c, 0, 0, 0
-);
+createIsland(0, -45, 17);
+createIsland(65, -105, 22);
+createIsland(-75, -160, 25);
+createIsland(100, 35, 20);
 
-boatPart(
-    new THREE.BoxGeometry(2.8, 1.2, 2),
-    0xffffff, 0, 0.8, -0.5
-);
+/* AĞAÇLAR */
 
-boatPart(
-    new THREE.BoxGeometry(2, 0.15, 1.4),
-    0x1688ba, 0, 1.5, -0.5
-);
+function createTree(x, z, scale = 1) {
+    const tree = new THREE.Group();
 
-boat.position.copy(boatPosition);
-scene.add(boat);
+    const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.5, 3, 8),
+        new THREE.MeshStandardMaterial({ color: 0x654321 })
+    );
 
-// ERKEK KARAKTER
+    trunk.position.y = 1.5;
+    tree.add(trunk);
+
+    const leaves = new THREE.Mesh(
+        new THREE.ConeGeometry(2, 5, 8),
+        new THREE.MeshStandardMaterial({ color: 0x126b32 })
+    );
+
+    leaves.position.y = 4.5;
+    tree.add(leaves);
+
+    tree.position.set(x, 0, z);
+    tree.scale.setScalar(scale);
+    scene.add(tree);
+}
+
+for (let i = 0; i < 24; i++) {
+    createTree(
+        (Math.random() - 0.5) * 25,
+        -45 + (Math.random() - 0.5) * 25,
+        0.7 + Math.random() * 0.7
+    );
+}
+
+/* ERKEK KARAKTER */
 
 const character = new THREE.Group();
 
+const skinMaterial = new THREE.MeshStandardMaterial({ color: 0xe0a477 });
+const shirtMaterial = new THREE.MeshStandardMaterial({ color: 0x174d9b });
+const pantsMaterial = new THREE.MeshStandardMaterial({ color: 0x202a3a });
+
 const body = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.45, 1, 4, 8),
-    new THREE.MeshStandardMaterial({color: 0x1768ae})
+    new THREE.BoxGeometry(1.1, 1.5, 0.6),
+    shirtMaterial
 );
-body.position.y = 1.2;
+body.position.y = 1.9;
 character.add(body);
 
 const head = new THREE.Mesh(
     new THREE.SphereGeometry(0.42, 16, 16),
-    new THREE.MeshStandardMaterial({color: 0xe5b28a})
+    skinMaterial
 );
-head.position.y = 2.2;
+head.position.y = 2.95;
 character.add(head);
 
-const hair = new THREE.Mesh(
-    new THREE.SphereGeometry(0.43, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshStandardMaterial({color: 0x30231d})
-);
-hair.position.y = 2.35;
-character.add(hair);
+const legs = [];
 
-character.position.copy(characterPosition);
+for (let side of [-1, 1]) {
+    const leg = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 1, 0.45),
+        pantsMaterial
+    );
+
+    leg.position.set(side * 0.28, 0.65, 0);
+    character.add(leg);
+    legs.push(leg);
+
+    const arm = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 1.1, 0.3),
+        skinMaterial
+    );
+
+    arm.position.set(side * 0.72, 2, 0);
+    character.add(arm);
+}
+
 scene.add(character);
 
-// SANDIK
+/* TEKNE */
+
+const boat = new THREE.Group();
+
+const boatBody = new THREE.Mesh(
+    new THREE.BoxGeometry(3.5, 0.8, 7),
+    new THREE.MeshStandardMaterial({ color: 0x143f66 })
+);
+
+boatBody.position.y = 0;
+boat.add(boatBody);
+
+const deck = new THREE.Mesh(
+    new THREE.BoxGeometry(3, 0.25, 5.5),
+    new THREE.MeshStandardMaterial({ color: 0x8b5b32 })
+);
+
+deck.position.y = 0.48;
+boat.add(deck);
+
+const seat = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 0.5, 0.7),
+    new THREE.MeshStandardMaterial({ color: 0xdddddd })
+);
+
+seat.position.set(0, 0.85, -0.5);
+boat.add(seat);
+
+const motor = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 1, 0.8),
+    new THREE.MeshStandardMaterial({ color: 0x222222 })
+);
+
+motor.position.set(0, 0.4, 3.4);
+boat.add(motor);
+
+boat.position.set(0, 0, 5);
+scene.add(boat);
+
+/* HAZİNE SANDIĞI */
 
 const chest = new THREE.Group();
 
-const chestBody = new THREE.Mesh(
-    new THREE.BoxGeometry(2, 1.2, 1.4),
-    new THREE.MeshStandardMaterial({color: 0x9b531b})
+const chestBase = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 1.3, 1.5),
+    new THREE.MeshStandardMaterial({ color: 0x8b4b15 })
 );
-chestBody.position.y = 0.8;
-chest.add(chestBody);
+
+chestBase.position.y = 0.65;
+chest.add(chestBase);
 
 const chestTop = new THREE.Mesh(
-    new THREE.BoxGeometry(2.1, 0.3, 1.5),
-    new THREE.MeshStandardMaterial({color: 0xe1a52d})
+    new THREE.BoxGeometry(2.05, 0.35, 1.55),
+    new THREE.MeshStandardMaterial({ color: 0xe6ad29 })
 );
-chestTop.position.y = 1.5;
+
+chestTop.position.y = 1.45;
 chest.add(chestTop);
 
 chest.position.set(0, 2.8, -45);
 scene.add(chest);
 
-// KAMERA
+/* OYUN DEĞİŞKENLERİ */
 
-function updateCamera() {
-    if (cameraMode === 1 && inBoat) {
-        camera.position.set(
-            boat.position.x,
-            boat.position.y + 3,
-            boat.position.z - 1
-        );
+let gold = 1000;
+let started = false;
+let inBoat = false;
+let chestOpened = false;
+let cameraMode = 0;
+let soundEnabled = true;
 
-        camera.rotation.set(0, boat.rotation.y, 0);
-    } else {
-        const target = inBoat ? boat.position : character.position;
+let boatSpeed = 0;
+let boatRotation = 0;
 
-        const offset = inBoat
-            ? new THREE.Vector3(0, 8, 15)
-            : new THREE.Vector3(7, 7, 10);
+const characterPosition = new THREE.Vector3(0, 0, 13);
 
-        offset.applyAxisAngle(
-            new THREE.Vector3(0, 1, 0),
-            inBoat ? boat.rotation.y : character.rotation.y
-        );
+let joystickX = 0;
+let joystickY = 0;
 
-        camera.position.copy(target).add(offset);
-        camera.lookAt(target.x, target.y + 1, target.z);
-    }
-}
+let turnLeft = false;
+let turnRight = false;
 
-// EKRAN YÖNETİMİ
+let storyIndex = 0;
+let lastTime = 0;
+
+/* HTML ELEMANLARI */
+
+const $ = id => document.getElementById(id);
+
+const screens = [
+    "menu",
+    "story",
+    "settings",
+    "shop"
+];
 
 function showScreen(name) {
-    ["menu", "story", "settings", "shop"].forEach(id => {
-        $(id).classList.add("hidden");
+    screens.forEach(id => {
+        $(id).classList.toggle("hidden", id !== name);
     });
-
-    if (name) $(name).classList.remove("hidden");
-}
-
-function showMessage(text) {
-    const box = $("message");
-    box.textContent = text;
-    box.style.display = "block";
-
-    clearTimeout(box.timer);
-    box.timer = setTimeout(() => {
-        box.style.display = "none";
-    }, 2800);
 }
 
 function updateGold() {
@@ -305,51 +316,76 @@ function updateGold() {
     $("shopGold").textContent = gold + " ALTIN";
 }
 
-// HİKÂYE
+function showMessage(message) {
+    const element = $("message");
+    element.textContent = message;
+    element.style.display = "block";
 
-function displayStory() {
-    const story = stories[storyIndex];
+    clearTimeout(showMessage.timer);
 
-    $("storyPicture").textContent = story.icon;
-    $("storyTitle").textContent = story.title;
-    $("storyText").textContent = story.text;
-
-    $("nextStory").textContent =
-        storyIndex === stories.length - 1 ? "OYUNA BAŞLA" : "İLERİ";
+    showMessage.timer = setTimeout(() => {
+        element.style.display = "none";
+    }, 2500);
 }
 
-$("startButton").onclick = () => {
-    storyIndex = 0;
-    showScreen("story");
-    displayStory();
-};
+/* HİKÂYE */
 
-$("nextStory").onclick = () => {
+const story = [
+    {
+        picture: "🌅",
+        title: "Yeni Bir Başlangıç",
+        text: "Uzun zamandır balıkçı olmayı hayal ediyordun. Artık kendi maceran başlıyor."
+    },
+    {
+        picture: "🌊",
+        title: "Büyük Deniz",
+        text: "Önünde keşfedilmeyi bekleyen kocaman bir deniz var."
+    },
+    {
+        picture: "🚤",
+        title: "İlk Teknen",
+        text: "Kendi teknenle denizlere açılmaya hazırlan."
+    },
+    {
+        picture: "🎣",
+        title: "Büyük Av",
+        text: "Nadir balıkları yakala, altın kazan ve ekipmanlarını geliştir."
+    },
+    {
+        picture: "🏝️",
+        title: "Keşif Zamanı",
+        text: "Adaları keşfet, hazineleri bul ve en iyi balıkçı ol!"
+    }
+];
+
+function updateStory() {
+    const current = story[storyIndex];
+
+    $("storyPicture").textContent = current.picture;
+    $("storyTitle").textContent = current.title;
+    $("storyText").textContent = current.text;
+
+    $("nextStory").textContent =
+        storyIndex === story.length - 1 ? "OYUNA BAŞLA" : "İLERİ";
+}
+
+function startStory() {
+    storyIndex = 0;
+    updateStory();
+    showScreen("story");
+}
+
+$("nextStory").addEventListener("click", () => {
     storyIndex++;
 
-    if (storyIndex >= stories.length) {
-        showScreen(null);
-        $("gameUI").classList.remove("hidden");
+    if (storyIndex >= story.length) {
         startGame();
-        return;
+    } else {
+        updateStory();
     }
+});
 
-    displayStory();
-};
-
-$("multiButton").onclick = () => {
-    showMessage("MULTIPLAYER YAKINDA SİZLERLE!!");
-};
-
-$("settingsButton").onclick = () => showScreen("settings");
-
-$("backSettings").onclick = () => showScreen("menu");
-
-$("soundButton").onclick = () => {
-    soundOn = !soundOn;
-    $("soundButton").textContent =
-        soundOn ? "🔊 SES AÇIK" : "🔇 SES KAPALI";
-};
+/* OYUNU BAŞLAT */
 
 function startGame() {
     started = true;
@@ -358,24 +394,70 @@ function startGame() {
     characterPosition.set(0, 0, 13);
     character.position.copy(characterPosition);
 
-    $("walkControls").classList.remove("hidden");
-    $("controls").classList.add("hidden");
+    boat.position.set(0, 0, 5);
+    boatRotation = 0;
+    boatSpeed = 0;
 
+    $("gameUI").classList.remove("hidden");
+    $("walkControls").classList.remove("hidden");
     $("enterBoat").classList.remove("hidden");
     $("leaveBoat").classList.add("hidden");
 
-    showMessage("Teknenin yanına ilerle!");
+    showScreen(null);
+    updateGold();
+    updateCamera();
+
+    showMessage("Teknene ulaşmak için joystick kullan!");
 }
 
-// JOYSTICK
+/* MENÜ */
 
-let joystickActive = false;
-let joystickPointer = null;
-let joystickX = 0;
-let joystickY = 0;
+$("startButton").addEventListener("click", startStory);
+
+$("multiButton").addEventListener("click", () => {
+    showMessage("YAKINDA SİZLERLE!!");
+});
+
+$("settingsButton").addEventListener("click", () => {
+    showScreen("settings");
+});
+
+$("backSettings").addEventListener("click", () => {
+    showScreen("menu");
+});
+
+$("soundButton").addEventListener("click", () => {
+    soundEnabled = !soundEnabled;
+    $("soundButton").textContent = soundEnabled
+        ? "🔊 SES AÇIK"
+        : "🔇 SES KAPALI";
+});
+
+/* JOYSTICK */
 
 const joystick = $("joystick");
 const stick = $("stick");
+
+let joystickPointer = null;
+
+function resetJoystick() {
+    joystickX = 0;
+    joystickY = 0;
+    stick.style.left = "50%";
+    stick.style.top = "50%";
+}
+
+joystick.addEventListener("pointerdown", event => {
+    joystickPointer = event.pointerId;
+    joystick.setPointerCapture(event.pointerId);
+    moveJoystick(event);
+});
+
+joystick.addEventListener("pointermove", event => {
+    if (joystickPointer === event.pointerId) {
+        moveJoystick(event);
+    }
+});
 
 function moveJoystick(event) {
     const rect = joystick.getBoundingClientRect();
@@ -383,8 +465,8 @@ function moveJoystick(event) {
     let x = event.clientX - (rect.left + rect.width / 2);
     let y = event.clientY - (rect.top + rect.height / 2);
 
-    const max = 35;
-    const length = Math.hypot(x, y);
+    const max = rect.width * 0.32;
+    const length = Math.sqrt(x * x + y * y);
 
     if (length > max) {
         x = x / length * max;
@@ -394,334 +476,368 @@ function moveJoystick(event) {
     joystickX = x / max;
     joystickY = y / max;
 
-    stick.style.transform = `translate(${x}px, ${y}px)`;
+    stick.style.left = `calc(50% + ${x}px)`;
+    stick.style.top = `calc(50% + ${y}px)`;
 }
 
-joystick.addEventListener("pointerdown", e => {
-    joystickActive = true;
-    joystickPointer = e.pointerId;
-    joystick.setPointerCapture(e.pointerId);
-    moveJoystick(e);
-});
-
-joystick.addEventListener("pointermove", e => {
-    if (joystickActive && e.pointerId === joystickPointer) {
-        moveJoystick(e);
+joystick.addEventListener("pointerup", event => {
+    if (joystickPointer === event.pointerId) {
+        joystickPointer = null;
+        resetJoystick();
     }
 });
 
-function resetJoystick() {
-    joystickActive = false;
-    joystickX = 0;
-    joystickY = 0;
-    stick.style.transform = "translate(0px, 0px)";
+joystick.addEventListener("pointercancel", () => {
+    joystickPointer = null;
+    resetJoystick();
+});
+
+/* TEKNE DÜMENİ */
+
+function holdButton(id, setter) {
+    const button = $(id);
+
+    button.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        setter(true);
+    });
+
+    button.addEventListener("pointerup", () => setter(false));
+    button.addEventListener("pointerleave", () => setter(false));
+    button.addEventListener("pointercancel", () => setter(false));
 }
 
-joystick.addEventListener("pointerup", resetJoystick);
-joystick.addEventListener("pointercancel", resetJoystick);
+holdButton("left", value => turnLeft = value);
+holdButton("right", value => turnRight = value);
 
-// GEMİYE BİNME / İNME
+/* TEKNEYE BİN VE İN */
 
-$("enterBoat").onclick = () => {
-    if (character.position.distanceTo(boat.position) < 7) {
+$("enterBoat").addEventListener("click", () => {
+    const distance = characterPosition.distanceTo(boat.position);
+
+    if (distance < 7) {
         inBoat = true;
 
         $("walkControls").classList.add("hidden");
-        $("controls").classList.remove("hidden");
-
         $("enterBoat").classList.add("hidden");
         $("leaveBoat").classList.remove("hidden");
 
-        showMessage("Tekneye bindin! İyi yolculuklar!");
+        showMessage("Tekneye bindin!");
     } else {
         showMessage("Önce teknenin yanına yaklaş!");
     }
-};
+});
 
-$("leaveBoat").onclick = () => {
+$("leaveBoat").addEventListener("click", () => {
     inBoat = false;
 
-    character.position.set(
+    characterPosition.set(
         boat.position.x + 4,
         0,
         boat.position.z
     );
 
-    $("walkControls").classList.remove("hidden");
-    $("controls").classList.add("hidden");
+    character.position.copy(characterPosition);
 
-    $("leaveBoat").classList.add("hidden");
+    $("walkControls").classList.remove("hidden");
     $("enterBoat").classList.remove("hidden");
+    $("leaveBoat").classList.add("hidden");
 
     showMessage("Tekneden indin!");
-};
-
-// DİREKSİYON
-
-function holdButton(id, value) {
-    const button = $(id);
-
-    button.addEventListener("pointerdown", e => {
-        e.preventDefault();
-        steering = value;
-        button.setPointerCapture(e.pointerId);
-    });
-
-    const stop = () => steering = 0;
-
-    button.addEventListener("pointerup", stop);
-    button.addEventListener("pointercancel", stop);
-    button.addEventListener("lostpointercapture", stop);
-}
-
-holdButton("left", -1);
-holdButton("right", 1);
-
-// GAZ / FREN
-
-$("gas").addEventListener("input", () => {
-    speed = speed;
 });
 
-// KAMERA
+/* GAZ VE FREN */
 
-$("camera").onclick = () => {
-    cameraMode = cameraMode === 3 ? 1 : 3;
+$("gas").addEventListener("input", event => {
+    if (!inBoat) return;
+    boatSpeed = Number(event.target.value) / 100 * 12;
+});
 
-    showMessage(
-        cameraMode === 1
-            ? "1. ŞAHIS KAMERA"
-            : "3. ŞAHIS KAMERA"
+/* KAMERA */
+
+$("camera").addEventListener("click", () => {
+    cameraMode = cameraMode === 0 ? 1 : 0;
+    updateCamera();
+
+    showMessage(cameraMode === 0
+        ? "Üçüncü şahıs kamera"
+        : "Birinci şahıs kamera"
     );
-};
+});
 
-// OLTA
+function updateCamera() {
+    if (!started) return;
 
-let fishing = false;
+    if (inBoat) {
+        if (cameraMode === 0) {
+            camera.position.set(
+                boat.position.x,
+                boat.position.y + 8,
+                boat.position.z + 13
+            );
+            camera.lookAt(boat.position);
+        } else {
+            camera.position.set(
+                boat.position.x,
+                boat.position.y + 2.5,
+                boat.position.z - 1
+            );
 
-$("fishing").onclick = () => {
+            camera.rotation.set(0, boat.rotation.y + Math.PI, 0);
+        }
+    } else {
+        if (cameraMode === 0) {
+            camera.position.set(
+                character.position.x + 7,
+                7,
+                character.position.z + 10
+            );
+            camera.lookAt(character.position);
+        } else {
+            camera.position.set(
+                character.position.x,
+                character.position.y + 3,
+                character.position.z - 0.5
+            );
+            camera.rotation.set(0, character.rotation.y, 0);
+        }
+    }
+}
+
+/* BALIK TUTMA */
+
+$("fishing").addEventListener("click", () => {
     if (!inBoat) {
         showMessage("Balık tutmak için tekneye bin!");
         return;
     }
 
-    if (Math.abs(speed) > 0.5) {
+    if (Math.abs(boatSpeed) > 0.5) {
         showMessage("Balık tutmak için tekneyi durdur!");
         return;
     }
 
-    if (fishing) return;
-
-    fishing = true;
     showMessage("🎣 Oltanı denize attın...");
 
     setTimeout(() => {
-        const reward = Math.floor(100 * rodLevel);
-        gold += reward;
+        if (!started || !inBoat) return;
+
+        const reward = Math.floor(Math.random() * 5) + 1;
+        const fishGold = reward * 100;
+
+        gold += fishGold;
         updateGold();
-        showMessage("🐟 Balık yakaladın! +" + reward + " altın");
-        fishing = false;
+
+        showMessage("🐟 Balık yakaladın! +" + fishGold + " altın");
     }, 3000);
-};
+});
 
-// SANDIK
+/* HAZİNE */
 
-$("openChest").onclick = () => {
+$("openChest").addEventListener("click", () => {
     if (chestOpened) {
         showMessage("Bu sandık zaten açıldı!");
         return;
     }
 
-    chestOpened = true;
-    chest.rotation.y = 0.5;
-
     const reward = Math.random() < 0.5 ? 1000 : 12000;
+
     gold += reward;
+    chestOpened = true;
+    chest.visible = false;
 
     updateGold();
-    $("openChest").classList.add("hidden");
 
-    showMessage("🎉 " + reward + " ALTIN KAZANDIN!");
-};
+    showMessage("🎉 Sandıktan " + reward + " altın çıktı!");
+});
 
-// DÜKKAN
+/* DÜKKAN */
 
-const boats = [
-    {name: "Başlangıç Teknesi", price: 0},
-    {name: "Hızlı Tekne", price: 20000},
-    {name: "Balıkçı Gemisi", price: 50000},
-    {name: "Lüks Yat", price: 100000}
+const boatsForSale = [
+    { name: "HIZLI TEKNE", price: 20000 },
+    { name: "SPORT TEKNE", price: 45000 },
+    { name: "LÜKS YAT", price: 70000 },
+    { name: "PROFESYONEL TEKNE", price: 100000 }
 ];
 
-function renderShop() {
+function buildShop() {
     const container = $("shopItems");
     container.innerHTML = "";
 
-    boats.forEach((item, index) => {
+    boatsForSale.forEach(item => {
         const div = document.createElement("div");
         div.className = "shop-item";
 
+        const title = document.createElement("p");
+        title.textContent = item.name + " - " + item.price + " ALTIN";
+
         const button = document.createElement("button");
+        button.textContent = "SATIN AL";
 
-        button.textContent = ownedBoats[index]
-            ? (boatLevel === index ? "SEÇİLİ TEKNE" : "SATIN ALINDI / SEÇ")
-            : "SATIN AL";
-
-        div.innerHTML =
-            `<b>🚤 ${item.name}</b><p>${item.price} ALTIN</p>`;
-
-        div.appendChild(button);
-        container.appendChild(div);
-
-        button.onclick = () => {
-            if (ownedBoats[index]) {
-                boatLevel = index;
-                showMessage(item.name + " seçildi!");
-            } else if (gold >= item.price) {
-                gold -= item.price;
-                ownedBoats[index] = true;
-                boatLevel = index;
-                updateGold();
-                showMessage("Yeni tekneni satın aldın!");
-                renderShop();
-            } else {
+        button.addEventListener("click", () => {
+            if (gold < item.price) {
                 showMessage("Yeterli altının yok!");
+                return;
             }
-        };
+
+            gold -= item.price;
+            updateGold();
+            showMessage(item.name + " satın alındı!");
+
+            boatSpeed = Math.min(boatSpeed, 12);
+        });
+
+        div.append(title, button);
+        container.appendChild(div);
     });
 }
 
-$("openShop").onclick = () => {
-    showScreen("shop");
-    renderShop();
+$("openShop").addEventListener("click", () => {
+    buildShop();
     updateGold();
-};
+    showScreen("shop");
+});
 
-$("closeShop").onclick = () => {
+$("closeShop").addEventListener("click", () => {
     showScreen(null);
-};
+});
 
-function upgrade(type, price) {
+function buyUpgrade(price, name) {
     if (gold < price) {
         showMessage("Yeterli altının yok!");
         return;
     }
 
     gold -= price;
-
-    if (type === "engine") engineLevel++;
-    if (type === "rod") rodLevel++;
-    if (type === "armor") armorLevel++;
-
     updateGold();
-    showMessage("Geliştirme başarılı! Seviye yükseldi.");
+    showMessage(name + " geliştirildi!");
 }
 
-$("engineUpgrade").onclick = () => upgrade("engine", 5000);
-$("rodUpgrade").onclick = () => upgrade("rod", 3000);
-$("armorUpgrade").onclick = () => upgrade("armor", 4000);
+$("engineUpgrade").addEventListener("click", () => {
+    buyUpgrade(5000, "Motor");
+});
 
-// YARDIMCI
+$("rodUpgrade").addEventListener("click", () => {
+    buyUpgrade(3000, "Olta");
+});
 
-function checkChest() {
-    const distance = character.position.distanceTo(chest.position);
+$("armorUpgrade").addEventListener("click", () => {
+    buyUpgrade(4000, "Zırh");
+});
 
-    if (!inBoat && distance < 6 && !chestOpened) {
-        $("openChest").classList.remove("hidden");
+/* KARAKTER VE TEKNE HAREKETİ */
+
+function updateMovement(delta) {
+    if (!started) return;
+
+    if (!inBoat) {
+        const movementSpeed = 8 * delta;
+
+        characterPosition.x += joystickX * movementSpeed;
+        characterPosition.z += joystickY * movementSpeed;
+
+        character.position.copy(characterPosition);
+
+        if (Math.abs(joystickX) + Math.abs(joystickY) > 0.1) {
+            character.rotation.y = Math.atan2(joystickX, joystickY);
+        }
+
+        const walking = Math.abs(joystickX) + Math.abs(joystickY) > 0.1;
+
+        legs.forEach((leg, index) => {
+            leg.rotation.x = walking
+                ? Math.sin(performance.now() * 0.012 + index * Math.PI) * 0.5
+                : 0;
+        });
+
+    } else {
+        if (turnLeft) boatRotation += delta * 1.5;
+        if (turnRight) boatRotation -= delta * 1.5;
+
+        boat.rotation.y = boatRotation;
+
+        const direction = new THREE.Vector3(
+            -Math.sin(boatRotation),
+            0,
+            -Math.cos(boatRotation)
+        );
+
+        boat.position.addScaledVector(direction, boatSpeed * delta);
+
+        boatSpeed *= Math.pow(0.985, delta * 60);
+
+        $("gas").value = Math.round(boatSpeed / 12 * 100);
+    }
+
+    if (!inBoat) {
+        const distanceToBoat = characterPosition.distanceTo(boat.position);
+
+        $("enterBoat").classList.toggle("hidden", distanceToBoat >= 7);
+    }
+
+    if (!inBoat && !chestOpened) {
+        const distanceToChest = characterPosition.distanceTo(chest.position);
+
+        $("openChest").classList.toggle("hidden", distanceToChest > 5);
     } else {
         $("openChest").classList.add("hidden");
     }
 }
 
-// OYUN DÖNGÜSÜ
+/* KAMERA VE BULUT HAREKETİ */
 
-const clock = new THREE.Clock();
-
-function animate() {
-    requestAnimationFrame(animate);
-
-    const delta = Math.min(clock.getDelta(), 0.05);
-
-    if (started) {
-        if (inBoat) {
-            const throttle = Number($("gas").value) / 100;
-
-            const acceleration = 5 * engineLevel;
-
-            speed += throttle * acceleration * delta;
-            speed *= Math.pow(0.985, delta * 60);
-
-            speed = THREE.MathUtils.clamp(speed, -12, 25);
-
-            boatRotation += steering * delta * 1.4 *
-                Math.min(1, Math.abs(speed) / 3);
-
-            boat.rotation.y = boatRotation;
-
-            boatPosition.x += Math.sin(boatRotation) * speed * delta;
-            boatPosition.z += Math.cos(boatRotation) * speed * delta;
-
-            boat.position.copy(boatPosition);
-
-            $("gasLabel").textContent =
-                "HIZ: " + Math.round(Math.abs(speed));
-
-            character.position.copy(boat.position);
-        } else {
-            character.position.x += joystickX * 8 * delta;
-            character.position.z += joystickY * 8 * delta;
-
-            if (Math.abs(joystickX) + Math.abs(joystickY) > 0.1) {
-                character.rotation.y = Math.atan2(
-                    joystickX,
-                    joystickY
-                );
-            }
-        }
-
-        checkChest();
-        updateCamera();
-    }
-
+function animateClouds(delta) {
     clouds.forEach(cloud => {
-        cloud.position.x += delta * 0.6;
+        cloud.position.x += delta * 0.7;
 
-        if (cloud.position.x > 100) {
-            cloud.position.x = -100;
+        if (cloud.position.x > 110) {
+            cloud.position.x = -110;
         }
     });
+}
 
-    water.position.x = 0;
+/* OYUN DÖNGÜSÜ */
+
+function animate(time) {
+    requestAnimationFrame(animate);
+
+    const delta = Math.min((time - lastTime) / 1000 || 0, 0.05);
+    lastTime = time;
+
+    animateClouds(delta);
+
+    if (started) {
+        updateMovement(delta);
+        updateCamera();
+    }
 
     renderer.render(scene, camera);
 }
 
-animate();
+requestAnimationFrame(animate);
 
-// EKRAN BOYUTU
+/* EKRAN BOYUTU */
 
-window.addEventListener("resize", () => {
-    camera.aspect = innerWidth / innerHeight;
+function resizeGame() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
 
-    renderer.setSize(innerWidth, innerHeight);
-});
-
-// YATAY EKRAN İSTEĞİ
-
-async function requestLandscape() {
-    try {
-        if (screen.orientation && screen.orientation.lock) {
-            await screen.orientation.lock("landscape");
-        }
-    } catch (error) {
-        console.log("Yatay ekran kilidi desteklenmiyor.");
-    }
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 }
 
-document.addEventListener("pointerdown", () => {
-    if (started) requestLandscape();
-}, {once: true});
+window.addEventListener("resize", resizeGame);
+
+window.addEventListener("orientationchange", () => {
+    setTimeout(resizeGame, 250);
+});
+
+resizeGame();
 
 updateGold();
-      
+
+console.log("FISHINGWORLD başarıyla başlatıldı!");
+        
