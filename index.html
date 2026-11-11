@@ -3,32 +3,61 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+
 <title>FISHINGWORLD</title>
 
 <style>
 * {
     box-sizing: border-box;
-    touch-action: none;
+    margin: 0;
+    padding: 0;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-body {
-    margin: 0;
+html, body {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
     background: #071d32;
     color: white;
     font-family: Arial, sans-serif;
 }
 
+body {
+    position: fixed;
+    inset: 0;
+}
+
+#game {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+#scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
 button {
-    border: 0;
-    border-radius: 12px;
-    padding: 13px 20px;
+    border: 1px solid #55caff;
+    border-radius: 10px;
+    padding: 10px 14px;
     color: white;
     background: #087fca;
     font-weight: bold;
-    font-size: 15px;
+    font-size: clamp(11px, 2.5vw, 15px);
+    min-height: 36px;
+    cursor: pointer;
+    touch-action: manipulation;
 }
 
 button:active {
@@ -39,69 +68,98 @@ button:active {
     display: none !important;
 }
 
-#game {
-    position: fixed;
-    inset: 0;
-}
-
-#scene {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-}
+/* ANA EKRANLAR */
 
 .screen {
     position: absolute;
     inset: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(#073e65dd, #001323ee);
+    background: linear-gradient(#073e65ee, #001323f5);
     z-index: 10;
     text-align: center;
-    padding: 15px;
+    padding: 12px;
+    overflow-y: auto;
 }
 
 .screen h1 {
-    font-size: clamp(30px, 7vw, 65px);
+    font-size: clamp(24px, 6vw, 48px);
     color: #39c9ff;
     text-shadow: 0 4px 15px #000;
+    margin-bottom: 10px;
+}
+
+.screen p {
+    font-size: clamp(11px, 2.8vw, 16px);
+    max-width: 90%;
+    line-height: 1.5;
 }
 
 .menu-buttons {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    width: min(280px, 85%);
+    gap: 9px;
+    width: min(240px, 75vw);
+    margin: 15px 0;
 }
 
 .menu-buttons button {
-    padding: 16px;
+    width: 100%;
+    padding: 12px;
+    min-height: 42px;
+}
+
+/* HİKÂYE */
+
+#storyPicture {
+    font-size: clamp(40px, 12vw, 75px) !important;
+    margin: 8px;
+}
+
+#storyTitle {
+    font-size: clamp(16px, 4vw, 24px);
+    margin-bottom: 8px;
 }
 
 #storyText {
-    font-size: 20px;
-    max-width: 600px;
-    margin: 20px;
+    font-size: clamp(12px, 3vw, 17px);
+    max-width: 550px;
+    margin: 12px;
 }
+
+/* ÜST BİLGİ */
 
 #topbar {
     position: absolute;
-    z-index: 3;
-    top: 10px;
-    left: 10px;
-    right: 10px;
+    z-index: 4;
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
     display: flex;
     justify-content: space-between;
     pointer-events: none;
+    font-size: clamp(10px, 2.5vw, 15px);
 }
 
 #topbar > * {
-    background: #001b30bb;
-    padding: 10px 14px;
-    border-radius: 12px;
+    background: #001b30dd;
+    padding: 8px 12px;
+    border-radius: 10px;
+}
+
+/* OYUN KONTROLLERİ */
+
+#gameUI {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
 }
 
 #controls {
@@ -113,56 +171,62 @@ button:active {
 
 .control-group {
     position: absolute;
-    bottom: 18px;
+    bottom: max(10px, env(safe-area-inset-bottom));
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 7px;
     pointer-events: auto;
 }
 
 #steering {
-    left: 12px;
+    left: max(10px, env(safe-area-inset-left));
 }
 
 #driving {
-    right: 12px;
+    right: max(10px, env(safe-area-inset-right));
     flex-direction: column;
+    gap: 5px;
 }
 
 .control-button {
-    width: 55px;
-    height: 55px;
+    width: clamp(40px, 9vw, 58px);
+    height: clamp(40px, 9vw, 58px);
+    min-height: 0;
     padding: 0;
     border-radius: 50%;
     background: #111c2ddd;
     border: 2px solid white;
-    font-size: 23px;
+    font-size: clamp(16px, 4vw, 23px);
 }
 
 #gas {
-    width: 130px;
+    width: 95px;
+    height: 25px;
+    margin: 12px 0;
     accent-color: #13d8a0;
     transform: rotate(-90deg);
-    margin: 45px -10px;
 }
 
 #gasLabel {
-    background: #001b30cc;
-    padding: 7px;
+    background: #001b30dd;
+    padding: 6px 10px;
     border-radius: 8px;
+    font-size: 11px;
 }
+
+/* YÜRÜME JOYSTICK */
 
 #walkControls {
     position: absolute;
-    left: 15px;
-    bottom: 20px;
+    left: max(12px, env(safe-area-inset-left));
+    bottom: max(12px, env(safe-area-inset-bottom));
     z-index: 5;
     pointer-events: auto;
 }
 
 #joystick {
-    width: 120px;
-    height: 120px;
+    width: clamp(85px, 20vw, 115px);
+    height: clamp(85px, 20vw, 115px);
     background: #001b3088;
     border: 2px solid #ffffff99;
     border-radius: 50%;
@@ -171,78 +235,112 @@ button:active {
 }
 
 #stick {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: #35bfff;
     position: absolute;
-    top: 34px;
-    left: 34px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     box-shadow: 0 2px 10px #000;
 }
 
+/* AKSİYON BUTONLARI */
+
 #actionButtons {
     position: absolute;
-    right: 12px;
-    bottom: 20px;
-    z-index: 5;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 6;
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 6px;
+    pointer-events: auto;
 }
 
 #actionButtons button {
     background: #0879cddd;
+    padding: 8px;
+    min-height: 34px;
+    font-size: clamp(10px, 2.3vw, 13px);
 }
+
+/* MESAJ */
 
 #message {
     position: absolute;
-    z-index: 15;
-    top: 22%;
+    z-index: 20;
+    top: 17%;
     left: 50%;
     transform: translateX(-50%);
-    background: #001b30e8;
-    padding: 14px 20px;
+    background: #001b30ee;
+    padding: 10px 15px;
     border-radius: 12px;
     text-align: center;
+    font-size: clamp(11px, 2.8vw, 16px);
     display: none;
-    max-width: 90%;
+    width: max-content;
+    max-width: 85%;
 }
+
+/* AYARLAR VE DÜKKAN */
 
 .panel {
     background: #082e49;
     border: 1px solid #38a8dc;
-    border-radius: 18px;
-    padding: 22px;
-    width: min(400px, 95%);
-    max-height: 90%;
+    border-radius: 15px;
+    padding: 15px;
+    width: min(380px, 94vw);
+    max-height: 85%;
     overflow-y: auto;
+    touch-action: pan-y;
+}
+
+.panel h2 {
+    font-size: clamp(18px, 4vw, 25px);
+    margin-bottom: 10px;
+}
+
+.panel h3 {
+    font-size: clamp(14px, 3vw, 19px);
+    margin: 12px 0;
 }
 
 .panel button {
-    margin: 5px;
+    margin: 4px;
+    max-width: 100%;
 }
 
 #shopItems {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .shop-item {
     background: #104a6b;
     border-radius: 10px;
-    padding: 10px;
+    padding: 9px;
 }
 
 #shopItems button {
     width: 100%;
 }
 
-#exitGame {
-    position: absolute;
-    top: 12px;
-    left: 12px;
+/* DİKEY EKRAN UYARISI */
+
+#rotateWarning {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    background: #061b2b;
+    color: white;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
 }
 
 @media (orientation: portrait) {
@@ -251,21 +349,53 @@ button:active {
     }
 }
 
-#rotateWarning {
-    display: none;
-    position: absolute;
-    z-index: 100;
-    inset: 0;
-    background: #061b2b;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 25px;
+/* KÜÇÜK TELEFONLAR */
+
+@media (max-height: 450px) and (orientation: landscape) {
+    .screen {
+        padding: 5px;
+    }
+
+    .screen h1 {
+        font-size: 25px;
+        margin-bottom: 4px;
+    }
+
+    .menu-buttons {
+        gap: 5px;
+        margin: 7px 0;
+    }
+
+    .menu-buttons button {
+        padding: 7px;
+        min-height: 30px;
+    }
+
+    #storyPicture {
+        font-size: 42px !important;
+        margin: 3px;
+    }
+
+    #storyText {
+        margin: 5px;
+        font-size: 12px;
+    }
+
+    #walkControls,
+    #actionButtons,
+    .control-group {
+        bottom: 7px;
+    }
+
+    .panel {
+        padding: 9px;
+    }
 }
 </style>
 </head>
 
 <body>
+
 <div id="game">
 
 <canvas id="scene"></canvas>
@@ -277,17 +407,19 @@ button:active {
 <div id="menu" class="screen">
     <h1>FISHINGWORLD</h1>
     <p>Denizlerin yeni macerasına hoş geldin!</p>
+
     <div class="menu-buttons">
         <button id="startButton">BAŞLA</button>
         <button id="multiButton">MULTIPLAYER</button>
         <button id="settingsButton">AYARLAR</button>
     </div>
+
     <p>© FISHINGWORLD</p>
 </div>
 
 <div id="story" class="screen hidden">
     <h1>FISHINGWORLD</h1>
-    <div id="storyPicture" style="font-size:90px">🌅</div>
+    <div id="storyPicture">🌅</div>
     <h2 id="storyTitle">Bir balıkçının hikâyesi</h2>
     <p id="storyText"></p>
     <button id="nextStory">İLERİ</button>
@@ -310,6 +442,7 @@ button:active {
     </div>
 
     <div id="controls">
+
         <div id="steering" class="control-group">
             <button class="control-button" id="left">◀</button>
             <button class="control-button" id="right">▶</button>
@@ -321,6 +454,7 @@ button:active {
             <button class="control-button" id="camera">📷</button>
             <button class="control-button" id="fishing">🎣</button>
         </div>
+
     </div>
 
     <div id="walkControls" class="hidden">
@@ -335,17 +469,22 @@ button:active {
         <button id="openShop">🏪 DÜKKAN</button>
         <button id="openChest" class="hidden">🎁 AÇ</button>
     </div>
+
 </div>
 
 <div id="shop" class="screen hidden">
     <div class="panel">
         <h2>🏪 GEMİ DÜKKANI</h2>
         <p id="shopGold">1000 ALTIN</p>
+
         <div id="shopItems"></div>
+
         <h3>GELİŞTİRMELER</h3>
+
         <button id="engineUpgrade">⚙️ Motor - 5000 Altın</button>
         <button id="rodUpgrade">🎣 Olta - 3000 Altın</button>
         <button id="armorUpgrade">🛡️ Zırh - 4000 Altın</button>
+
         <br>
         <button id="closeShop">KAPAT</button>
     </div>
@@ -356,6 +495,7 @@ button:active {
 </div>
 
 <script type="module" src="js/game.js"></script>
+
 </body>
-  </html>
-  
+        </html>
+        
