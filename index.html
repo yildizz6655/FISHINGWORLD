@@ -1,0 +1,361 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>FISHINGWORLD</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    touch-action: none;
+    user-select: none;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #071d32;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+button {
+    border: 0;
+    border-radius: 12px;
+    padding: 13px 20px;
+    color: white;
+    background: #087fca;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+button:active {
+    transform: scale(.95);
+}
+
+.hidden {
+    display: none !important;
+}
+
+#game {
+    position: fixed;
+    inset: 0;
+}
+
+#scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(#073e65dd, #001323ee);
+    z-index: 10;
+    text-align: center;
+    padding: 15px;
+}
+
+.screen h1 {
+    font-size: clamp(30px, 7vw, 65px);
+    color: #39c9ff;
+    text-shadow: 0 4px 15px #000;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(280px, 85%);
+}
+
+.menu-buttons button {
+    padding: 16px;
+}
+
+#storyText {
+    font-size: 20px;
+    max-width: 600px;
+    margin: 20px;
+}
+
+#topbar {
+    position: absolute;
+    z-index: 3;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+#topbar > * {
+    background: #001b30bb;
+    padding: 10px 14px;
+    border-radius: 12px;
+}
+
+#controls {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.control-group {
+    position: absolute;
+    bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+#steering {
+    left: 12px;
+}
+
+#driving {
+    right: 12px;
+    flex-direction: column;
+}
+
+.control-button {
+    width: 55px;
+    height: 55px;
+    padding: 0;
+    border-radius: 50%;
+    background: #111c2ddd;
+    border: 2px solid white;
+    font-size: 23px;
+}
+
+#gas {
+    width: 130px;
+    accent-color: #13d8a0;
+    transform: rotate(-90deg);
+    margin: 45px -10px;
+}
+
+#gasLabel {
+    background: #001b30cc;
+    padding: 7px;
+    border-radius: 8px;
+}
+
+#walkControls {
+    position: absolute;
+    left: 15px;
+    bottom: 20px;
+    z-index: 5;
+    pointer-events: auto;
+}
+
+#joystick {
+    width: 120px;
+    height: 120px;
+    background: #001b3088;
+    border: 2px solid #ffffff99;
+    border-radius: 50%;
+    position: relative;
+    touch-action: none;
+}
+
+#stick {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #35bfff;
+    position: absolute;
+    top: 34px;
+    left: 34px;
+    box-shadow: 0 2px 10px #000;
+}
+
+#actionButtons {
+    position: absolute;
+    right: 12px;
+    bottom: 20px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+#actionButtons button {
+    background: #0879cddd;
+}
+
+#message {
+    position: absolute;
+    z-index: 15;
+    top: 22%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #001b30e8;
+    padding: 14px 20px;
+    border-radius: 12px;
+    text-align: center;
+    display: none;
+    max-width: 90%;
+}
+
+.panel {
+    background: #082e49;
+    border: 1px solid #38a8dc;
+    border-radius: 18px;
+    padding: 22px;
+    width: min(400px, 95%);
+    max-height: 90%;
+    overflow-y: auto;
+}
+
+.panel button {
+    margin: 5px;
+}
+
+#shopItems {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.shop-item {
+    background: #104a6b;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+#shopItems button {
+    width: 100%;
+}
+
+#exitGame {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+}
+
+@media (orientation: portrait) {
+    #rotateWarning {
+        display: flex;
+    }
+}
+
+#rotateWarning {
+    display: none;
+    position: absolute;
+    z-index: 100;
+    inset: 0;
+    background: #061b2b;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 25px;
+}
+</style>
+</head>
+
+<body>
+<div id="game">
+
+<canvas id="scene"></canvas>
+
+<div id="rotateWarning">
+    <h2>📱 Lütfen telefonunu yan çevir!</h2>
+</div>
+
+<div id="menu" class="screen">
+    <h1>FISHINGWORLD</h1>
+    <p>Denizlerin yeni macerasına hoş geldin!</p>
+    <div class="menu-buttons">
+        <button id="startButton">BAŞLA</button>
+        <button id="multiButton">MULTIPLAYER</button>
+        <button id="settingsButton">AYARLAR</button>
+    </div>
+    <p>© FISHINGWORLD</p>
+</div>
+
+<div id="story" class="screen hidden">
+    <h1>FISHINGWORLD</h1>
+    <div id="storyPicture" style="font-size:90px">🌅</div>
+    <h2 id="storyTitle">Bir balıkçının hikâyesi</h2>
+    <p id="storyText"></p>
+    <button id="nextStory">İLERİ</button>
+</div>
+
+<div id="settings" class="screen hidden">
+    <div class="panel">
+        <h2>⚙️ AYARLAR</h2>
+        <button id="soundButton">🔊 SES AÇIK</button>
+        <br>
+        <button id="backSettings">GERİ</button>
+    </div>
+</div>
+
+<div id="gameUI" class="hidden">
+
+    <div id="topbar">
+        <div>🎣 FISHINGWORLD</div>
+        <div id="gold">🪙 1000 ALTIN</div>
+    </div>
+
+    <div id="controls">
+        <div id="steering" class="control-group">
+            <button class="control-button" id="left">◀</button>
+            <button class="control-button" id="right">▶</button>
+        </div>
+
+        <div id="driving" class="control-group">
+            <div id="gasLabel">GAZ / FREN</div>
+            <input id="gas" type="range" min="-100" max="100" value="0">
+            <button class="control-button" id="camera">📷</button>
+            <button class="control-button" id="fishing">🎣</button>
+        </div>
+    </div>
+
+    <div id="walkControls" class="hidden">
+        <div id="joystick">
+            <div id="stick"></div>
+        </div>
+    </div>
+
+    <div id="actionButtons">
+        <button id="enterBoat">🚤 GEMİYE BİN</button>
+        <button id="leaveBoat" class="hidden">🚶 İN</button>
+        <button id="openShop">🏪 DÜKKAN</button>
+        <button id="openChest" class="hidden">🎁 AÇ</button>
+    </div>
+</div>
+
+<div id="shop" class="screen hidden">
+    <div class="panel">
+        <h2>🏪 GEMİ DÜKKANI</h2>
+        <p id="shopGold">1000 ALTIN</p>
+        <div id="shopItems"></div>
+        <h3>GELİŞTİRMELER</h3>
+        <button id="engineUpgrade">⚙️ Motor - 5000 Altın</button>
+        <button id="rodUpgrade">🎣 Olta - 3000 Altın</button>
+        <button id="armorUpgrade">🛡️ Zırh - 4000 Altın</button>
+        <br>
+        <button id="closeShop">KAPAT</button>
+    </div>
+</div>
+
+<div id="message"></div>
+
+</div>
+
+<script type="module" src="js/game.js"></script>
+</body>
+  </html>
+  
